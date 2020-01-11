@@ -23,34 +23,14 @@ const { getIpv4MappedIpv6Address } = require(path.join(__dirname, 'ipv6.js'));
 */
 const IPCIDR = require('ip-cidr');
 
-/*
-* Class that stores IPV4 and IPV6 addresses.
-*/
-class CUSTOMIPADDRESS {
-    constructor(address1, address2){
-        this.ipv4 = address1;
-        this.ipv6 = address2;
-    }
-}
-
-class IpAddress {
-  constructor() {
-    // IAP's global log object is used to output errors, warnings, and other
-    // information to the console, IAP's log files, or a Syslog server.
-    // For more information, consult the Log Class guide on the Itential
-    // Developer Hub https://developer.itential.io/ located
-    // under Documentation -> Developer Guides -> Log Class Guide
-    log.info('Starting the IpAddress product.');
-  }
-
-  /**
+/**
  * @description Calculate and return an object of the first host IP address from a CIDR subnet and its mapped IPV6 address.
  * @param {string} cidrStr - The IPv4 subnet expressed
  *                 in CIDR format.
  * @param {callback} callback - A callback function.
  * @return {object} -An object that constains both IPV4 address and its mapped IPV6 address.
  */
- getFirstIpAddress(cidrStr, callback) {
+function getFirstIpAddress(cidrStr, callback) {
 
   // Initialize return arguments for callback
   let firstIpAddress = null;
@@ -82,13 +62,64 @@ class IpAddress {
      ipv6Address = getIpv4MappedIpv6Address(firstIpAddress);
   }
 
-  let ipAddress = new CUSTOMIPADDRESS(firstIpAddress, ipv6Address);
+  let ipAddress = new IPADDRESS(firstIpAddress, ipv6Address);
   // Call the passed callback function.
   // Node.js convention is to pass error data as the first argument to a callback.
   // The IAP convention is to pass returned data as the first argument and error
   // data as the second argument to the callback function.
   return callback(ipAddress, callbackError);
- }
 }
 
-module.exports = new IpAddress;
+/*
+  This section is used to test function and log any errors.
+  We will make several positive and negative tests.
+*/
+function main() {
+  // Create some test data for getFirstIpAddress(), both valid and invalid.
+  let sampleCidrs = ['172.16.10.0/24', '172.16.10.0 255.255.255.0', '172.16.10.128/25', '192.168.1.216/30'];
+  let sampleCidrsLen = sampleCidrs.length;
+  // Create some test data for getIpv4MappedIpv6Address, both valid and invalid.
+  let sampleIpv4s = [ '172.16.10.1', '172.16.10.0/24', '172.16.10.0 255.255.255.0', '172.16.256.1', '1.1.1.-1'];
+  let sampleIpv4sLen = sampleIpv4s.length;
+
+  // Iterate over sampleCidrs and pass the element's value to getFirstIpAddress().
+  for (let i = 0; i < sampleCidrsLen; i++) {
+    console.log(`\n--- Test Number ${i + 1} getFirstIpAddress(${sampleCidrs[i]}) ---`);
+    // Call getFirstIpAddress and pass the test subnet and an anonymous callback function.
+    // The callback is using the fat arrow operator: () => { }
+    getFirstIpAddress(sampleCidrs[i], (data, error) => {
+      // Now we are inside the callback function.
+      // Display the results on the console.
+      if (error) {
+        console.error(`  Error returned from GET request: ${error}`);
+      }
+      console.log(`Response returned from GET request: `+JSON.stringify(data));
+    });
+  }
+  //Iterate over sampleIpv4s and pass the element's value to getIpv4MappedIpv6Address().
+  for (let i = 0; i < sampleIpv4sLen; i++) {
+    console.log(`\n--- Test Number ${i + 1} getIpv4MappedIpv6Address(${sampleIpv4s[i]}) ---`);
+    // Assign the function results to a variable so we can check if a string or null was returned.
+    let mappedAddress = getIpv4MappedIpv6Address(sampleIpv4s[i]);
+    if( mappedAddress ) {
+      console.log(`  IPv4 ${sampleIpv4s[i]} mapped to IPv6 Address: ${mappedAddress}`);
+    } else {
+      console.error(`  Problem converting IPv4 ${sampleIpv4s[i]} into a mapped IPv6 address.`);
+    }
+  }
+}
+
+/*
+* Class that stores IPV4 and IPV6 addresses.
+*/
+class IPADDRESS {
+    constructor(address1, address2){
+        this.ipv4 = address1;
+        this.ipv6 = address2;
+    }
+}
+
+/*
+  Call main to run it.
+*/
+main();
